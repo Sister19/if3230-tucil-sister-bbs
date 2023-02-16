@@ -27,6 +27,7 @@ struct FreqMatrix freq_domain;
 int local_rows_start;
 int local_rows_end;
 int local_size;
+int normal_size;
 int world_size;
 int world_rank;
 
@@ -53,47 +54,68 @@ double complex dft(struct Matrix *mat, int k, int l)
     return element / (double)(mat->size * mat->size);
 }
 
-void init_matrix()
-{
-    readMatrix(&source);
-}
-
 void broadcast_matrix()
 {
     MPI_Bcast(&source, sizeof(source), MPI_BYTE, 0, MPI_COMM_WORLD);
     freq_domain.size = source.size;
-    if (world_rank != world_size - 1)
+    local_rows_start = world_rank * (source.size / world_size);
+    local_rows_end = (world_rank + 1) * (source.size / world_size);
+
+    if (local_rows_start % source.size != 0)
     {
-        local_rows_start = world_rank * (source.size / world_size);
-        local_rows_end = (world_rank + 1) * (source.size / world_size);
+        local_rows_start += 1 * world_rank;
+        local_rows_end += 1 * world_rank;
     }
-    else
+    if (world_rank == world_size - 1)
     {
-        local_rows_start = world_rank * (source.size / world_size) + (source.size % world_size);
         local_rows_end = source.size;
     }
-    local_size = local_rows_end - local_rows_start;
+    local_size = local_rows_end - local_rows_start + 1;
+
+    if (world_rank == 0)
+    {
+        normal_size = local_size;
+    }
+    MPI_Bcast(&normal_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
 }
 
 void compute_freq_domain()
 {
-    for (int k = local_rows_start; k < local_rows_end; k++)
+    for (int k = local_rows_start; k < local_rows_start + normal_size; k++)
         for (int l = 0; l < source.size; l++)
             freq_domain.mat[k * freq_domain.size + l] = dft(&source, k, l);
 }
 
 void gather_freq_domain()
 {
-    printf("\n%d %p %p %p\n", world_rank, &freq_domain, &freq_domain + sizeof(double complex) * (freq_domain.size + local_rows_start), sizeof(double complex) * (local_rows_end - local_rows_start + 1));
     MPI_Gather(
         &(freq_domain.mat[local_rows_start * freq_domain.size]),
-        local_size * freq_domain.size,
+        normal_size * freq_domain.size,
         MPI_C_DOUBLE_COMPLEX,
         &(freq_domain.mat),
-        local_size * freq_domain.size,
+        normal_size * freq_domain.size,
         MPI_C_DOUBLE_COMPLEX,
         0,
         MPI_COMM_WORLD);
+}
+
+void print_result()
+{
+    double complex sum = 0.0;
+    for (int k = 0; k < source.size; k++)
+    {
+        for (int l = 0; l < source.size; l++)
+        {
+            double complex el = freq_domain.mat[k * freq_domain.size + l];
+            printf("(%lf, %lf) ", creal(el), cimag(el));
+            sum += el;
+        }
+        printf("\n");
+    }
+
+    sum /= source.size;
+    printf("Average : (%lf, %lf)", creal(sum), cimag(sum));
+    printf("Size : %d", source.size);
 }
 
 int main(void)
@@ -105,7 +127,7 @@ int main(void)
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
     if (world_rank == 0)
-        init_matrix();
+        readMatrix(&source);
 
     broadcast_matrix();
 
@@ -114,25 +136,9 @@ int main(void)
     gather_freq_domain();
 
     if (world_rank == 0)
-    {
-        double complex sum = 0.0;
-        for (int k = 0; k < source.size; k++)
-        {
-            for (int l = 0; l < source.size; l++)
-            {
-                double complex el = freq_domain.mat[k * freq_domain.size + l];
-                printf("(%lf, %lf) ", creal(el), cimag(el));
-                sum += el;
-            }
-            printf("\n");
-        }
+        print_result();
 
-        sum /= source.size;
-        printf("Average : (%lf, %lf)", creal(sum), cimag(sum));
-    }
-
-
-        MPI_Finalize();
+    MPI_Finalize();
 
     return 0;
 }
