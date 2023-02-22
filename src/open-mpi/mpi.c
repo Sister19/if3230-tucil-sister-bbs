@@ -56,19 +56,19 @@ void broadcast_matrix()
 {
     MPI_Bcast(&source, sizeof(source), MPI_BYTE, 0, MPI_COMM_WORLD);
     freq_domain.size = source.size;
-    local_rows_start = world_rank * (source.size / world_size); // 0, 4, 8, 12
+    local_rows_start = world_rank * (source.size / world_size);     // 0, 4, 8, 12
     local_rows_end = (world_rank + 1) * (source.size / world_size); // 4, 8, 12, 16
-
-    if (local_rows_start % source.size != 0)
+    int remainder = source.size % world_size;
+    if (remainder != 0)
     {
-        local_rows_start += 1 * world_rank; // 0, 5, 10, 15
-        local_rows_end += 1 * world_rank; // 5, 10, 15, 20
+        local_rows_start += remainder * world_rank;     // 0, 5, 10, 15
+        local_rows_end += remainder * (world_rank + 1); // 5, 10, 15, 20
     }
     if (world_rank == world_size - 1)
     {
         local_rows_end = source.size; // 16
     }
-    local_size = local_rows_end - local_rows_start + 1;
+    local_size = local_rows_end - local_rows_start;
 
     if (world_rank == 0)
     {
@@ -79,7 +79,7 @@ void broadcast_matrix()
 
 void compute_freq_domain()
 {
-    for (int k = local_rows_start; k < local_rows_start + normal_size; k++)
+    for (int k = local_rows_start; k < local_rows_end; k++)
         for (int l = 0; l < source.size; l++)
             freq_domain.mat[k * freq_domain.size + l] = dft(&source, k, l);
 }

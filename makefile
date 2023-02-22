@@ -1,14 +1,9 @@
 OUTPUT_FOLDER = bin
 
-all: serial parallel
+open-mpi-all: open-mpi-build open-mpi-run
 
-open-mpi:
-# Local
-	mpicc src/open-mpi/mpi.c -o $(OUTPUT_FOLDER)/open-mpi -lm
+open-mpi-build:
+	mpicc src/open-mpi/mpi.c -o ${OUTPUT_FOLDER}/mpi -lm
 
-parallel:
-# TODO : Parallel compilation
-	make open-mpi
-
-serial:
-	gcc src/serial/c/serial.c -o $(OUTPUT_FOLDER)/serial -lm
+open-mpi-run:
+	mpirun -n 4 ${OUTPUT_FOLDER}/mpi
