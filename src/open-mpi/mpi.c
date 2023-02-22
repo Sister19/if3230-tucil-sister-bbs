@@ -112,8 +112,8 @@ void print_result()
     }
 
     sum /= source.size;
-    printf("Average : (%lf, %lf)", creal(sum), cimag(sum));
-    printf("Size : %d", source.size);
+    printf("Average : (%lf, %lf)\n", creal(sum), cimag(sum));
+    printf("Size : %d\n", source.size);
 }
 
 int main(void)
@@ -129,7 +129,11 @@ int main(void)
 
     broadcast_matrix();
 
+    double start = MPI_Wtime();
+
     compute_freq_domain();
+
+    double end = MPI_Wtime();
 
     gather_freq_domain();
 
@@ -137,6 +141,8 @@ int main(void)
         print_result();
 
     MPI_Finalize();
+
+    printf("Process %d took %lf seconds\n", world_rank, end - start);
 
     return 0;
 }
