@@ -4,8 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <complex.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <math.h>
 
 #define MAX_N 512
@@ -58,17 +56,17 @@ void broadcast_matrix()
 {
     MPI_Bcast(&source, sizeof(source), MPI_BYTE, 0, MPI_COMM_WORLD);
     freq_domain.size = source.size;
-    local_rows_start = world_rank * (source.size / world_size);
-    local_rows_end = (world_rank + 1) * (source.size / world_size);
+    local_rows_start = world_rank * (source.size / world_size); // 0, 4, 8, 12
+    local_rows_end = (world_rank + 1) * (source.size / world_size); // 4, 8, 12, 16
 
     if (local_rows_start % source.size != 0)
     {
-        local_rows_start += 1 * world_rank;
-        local_rows_end += 1 * world_rank;
+        local_rows_start += 1 * world_rank; // 0, 5, 10, 15
+        local_rows_end += 1 * world_rank; // 5, 10, 15, 20
     }
     if (world_rank == world_size - 1)
     {
-        local_rows_end = source.size;
+        local_rows_end = source.size; // 16
     }
     local_size = local_rows_end - local_rows_start + 1;
 
