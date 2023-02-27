@@ -14,3 +14,16 @@ open-mpi-run:
 
 open-mpi-run-test:
 	mpirun -n ${n} ${OUTPUT_FOLDER}/mpi < test_case/${tc}.txt
+
+open-mp-all: open-mp-build open-mp-run
+
+open-mp-all-test: open-mp-build open-mp-run-test
+
+open-mp-build:
+	gcc src/open-mp/mp.c --openmp -o ${OUTPUT_FOLDER}/mp -lm
+
+open-mp-run:
+	./${OUTPUT_FOLDER}/mp
+
+open-mp-run-test:
+	./${OUTPUT_FOLDER}/mp < test_case/${tc}.txt
