@@ -32,14 +32,20 @@ void readMatrix(struct Matrix *m)
 double complex dft(struct Matrix *mat, int k, int l)
 {
     double complex element = 0.0;
-    for (int m = 0; m < mat->size; m++)
+#pragma omp
     {
-        for (int n = 0; n < mat->size; n++)
+        double complex local_element = 0.0;
+        for (int m = 0; m < mat->size; m++)
         {
-            double complex arg = (k * m / (double)mat->size) + (l * n / (double)mat->size);
-            double complex exponent = cexp(-2.0I * M_PI * arg);
-            element += mat->mat[m][n] * exponent;
+            for (int n = 0; n < mat->size; n++)
+            {
+                double complex arg = (k * m / (double)mat->size) + (l * n / (double)mat->size);
+                double complex exponent = cexp(-2.0I * M_PI * arg);
+                local_element += mat->mat[m][n] * exponent;
+            }
         }
+#pragma omp critical
+        element += local_element;
     }
     return element / (double)(mat->size * mat->size);
 }
@@ -54,7 +60,7 @@ int main(void)
 
     start = omp_get_wtime();
 
-    #pragma omp parallel for
+#pragma omp parallel for
     for (int k = 0; k < source.size; k++)
         for (int l = 0; l < source.size; l++)
             freq_domain.mat[k][l] = dft(&source, k, l);
