@@ -27,3 +27,11 @@ open-mp-run:
 
 open-mp-run-test:
 	./${OUTPUT_FOLDER}/mp < test_case/${tc}.txt
+
+cuda-all: cuda-build cuda-run
+
+cuda-build:
+	nvcc ./src/cuda/cuda.cu -o ./${OUTPUT_FOLDER}/cuda -diag-suppress 2464 -lm
+
+cuda-run: 
+	./${OUTPUT_FOLDER}/cuda <tes_case/${tc}.txt
