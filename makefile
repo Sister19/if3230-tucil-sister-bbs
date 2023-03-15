@@ -34,4 +34,4 @@ cuda-build:
 	nvcc ./src/cuda/cuda.cu -o ./${OUTPUT_FOLDER}/cuda -diag-suppress 2464 -lm
 
 cuda-run: 
-	./${OUTPUT_FOLDER}/cuda <tes_case/${tc}.txt
+	./${OUTPUT_FOLDER}/cuda < test_case/${tc}.txt
