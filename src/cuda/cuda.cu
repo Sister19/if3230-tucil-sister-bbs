@@ -41,7 +41,7 @@ void readMatrix(struct Matrix *m)
 //   return element / (double)(mat->size * mat->size);
 // }
 
-__global__ void computeDFT(struct Matrix *src, struct FreqMatrix *dest, int k, int l)
+__global__ void computeDFT(struct Matrix *src, struct FreqMatrix *dest)
 {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   int j = blockIdx.y * blockDim.y + threadIdx.y;
@@ -54,7 +54,8 @@ __global__ void computeDFT(struct Matrix *src, struct FreqMatrix *dest, int k, i
       {
         // double complex arg = (k * m / (double)src->size) + (l * n / (double)src->size);
         // double complex exponent = cexp(-2.0I * M_PI * arg);
-        cuDoubleComplex exponent = make_cuDoubleComplex(0.0, -2.0 * M_PI * (k * m / (double)src->size) + (l * n / (double)src->size));
+        double arg = (i * m / (double)src->size) + (j * n / (double)src->size);
+        cuDoubleComplex exponent = make_cuDoubleComplex(cos(-2.0 * M_PI * arg), sin(-2.0 * M_PI * arg));
         element = cuCadd(element, cuCmul(make_cuDoubleComplex(src->mat[m][n], 0.0), exponent));
       }
     }
@@ -76,22 +77,16 @@ int main(void)
   dim3 threadsPerBlock(threads, threads);
   dim3 blocksPerGrid(source.size / threads, source.size / threads);
 
-  for (int k = 0; k < source.size; k++)
-  {
-    for (int l = 0; l < source.size; l++)
-    {
-      struct Matrix *dev_source;
-      struct FreqMatrix *dev_dest;
-      cudaMalloc((void **)&dev_source, sizeof(struct Matrix));
-      cudaMalloc((void **)&dev_dest, sizeof(struct FreqMatrix));
-      cudaMemcpy(dev_source, &source, sizeof(struct Matrix), cudaMemcpyHostToDevice);
-      computeDFT<<<blocksPerGrid, threadsPerBlock>>>(dev_source, dev_dest, k, l);
-      freq_domain.mat[k][l] = make_cuDoubleComplex(0.0, 0.0);
-      cudaMemcpy(&freq_domain.mat[k][l], &dev_dest->mat[k][l], sizeof(cuDoubleComplex), cudaMemcpyDeviceToHost);
-      cudaFree(dev_source);
-      cudaFree(dev_dest);
-    }
-  }
+  struct Matrix *dev_source;
+  struct FreqMatrix *dev_dest;
+  cudaMalloc((void **)&dev_source, sizeof(struct Matrix));
+  cudaMalloc((void **)&dev_dest, sizeof(struct FreqMatrix));
+  cudaMemcpy(dev_source, &source, sizeof(struct Matrix), cudaMemcpyHostToDevice);
+  computeDFT<<<blocksPerGrid, threadsPerBlock>>>(dev_source, dev_dest);
+  cudaMemcpy(&freq_domain, dev_dest, sizeof(struct FreqMatrix), cudaMemcpyDeviceToHost);
+  cudaFree(dev_source);
+  cudaFree(dev_dest);
+
   cudaDeviceSynchronize();
   end = clock();
 
@@ -109,7 +104,7 @@ int main(void)
     }
     printf("\n");
   }
-  // make_cuDoubleComplex(sum, 0,0) /= source.size;
+  sum = cuCdiv(sum, make_cuDoubleComplex(source.size, 0.0));
   printf("Average : (%lf, %lf)\n", cuCreal(sum), cuCimag(sum));
   printf("Time: %f\n", ((double)(end - start)) / CLOCKS_PER_SEC);
 
