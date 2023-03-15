@@ -1,4 +1,4 @@
-#include <complex.h>
+#include <cuComplex.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -15,7 +15,7 @@ struct Matrix
 struct FreqMatrix
 {
   int size;
-  double complex mat[MAX_N][MAX_N];
+  cuDoubleComplex mat[MAX_N][MAX_N];
 };
 
 void readMatrix(struct Matrix *m)
@@ -26,15 +26,15 @@ void readMatrix(struct Matrix *m)
       scanf("%lf", &(m->mat[i][j]));
 }
 
-double complex dft(struct Matrix *mat, int k, int l)
+cuDoubleComplex dft(struct Matrix *mat, int k, int l)
 {
-  double complex element = 0.0;
+  cuDoubleComplex element = 0.0;
   for (int m = 0; m < mat->size; m++)
   {
     for (int n = 0; n < mat->size; n++)
     {
-      double complex arg = (k * m / (double)mat->size) + (l * n / (double)mat->size);
-      double complex exponent = cexp(-2.0I * M_PI * arg);
+      cuDoubleComplex arg = (k * m / (double)mat->size) + (l * n / (double)mat->size);
+      cuDoubleComplex exponent = cexp(-2.0I * M_PI * arg);
       element += mat->mat[m][n] * exponent;
     }
   }
@@ -47,13 +47,13 @@ __global void computeMatrix(struct Matrix *src, struct Matrix *dest, int k, int 
   int j = blockIdx.y * blockDim.y + threadIdx.y;
   if (i < src->size && j < src->size)
   {
-    double complex element = 0.0;
+    cuDoubleComplex element = 0.0;
     for (int m = 0; m < src->size; m++)
     {
       for (int n = 0; n < src->size; n++)
       {
-        double complex arg = (k * m / (double)src->size) + (l * n / (double)src->size);
-        double complex exponent = cexp(-2.0I * M_PI * arg);
+        cuDoubleComplex arg = (k * m / (double)src->size) + (l * n / (double)src->size);
+        cuDoubleComplex exponent = cexp(-2.0I * M_PI * arg);
         element += src->mat[m][n] * exponent;
       }
     }
@@ -83,7 +83,7 @@ int main(void)
       cudaMalloc((void **)&dev_dest, sizeof(struct Matrix));
       cudaMemcpy(dev_source, &source, sizeof(struct Matrix), cudaMemcpyHostToDevice);
       computeMatrix<<<blocksPerGrid, threadsPerBlock>>>(dev_source, dev_dest, k, l);
-      cudaMemcpy(&freq_domain.mat[k][l], &dev_dest->mat[k][l], sizeof(double complex), cudaMemcpyDeviceToHost);
+      cudaMemcpy(&freq_domain.mat[k][l], &dev_dest->mat[k][l], sizeof(cuDoubleComplex), cudaMemcpyDeviceToHost);
       cudaFree(dev_source);
       cudaFree(dev_dest);
     }
@@ -91,12 +91,12 @@ int main(void)
   cudaDeviceSynchronize();
   end = clock();
 
-  double complex sum = 0.0;
+  cuDoubleComplex sum = 0.0;
   for (int k = 0; k < source.size; k++)
   {
     for (int l = 0; l < source.size; l++)
     {
-      double complex el = freq_domain.mat[k][l];
+      cuDoubleComplex el = freq_domain.mat[k][l];
       printf("(%lf, %lf) ", creal(el), cimag(el));
       sum += el;
     }
