@@ -26,21 +26,6 @@ void readMatrix(struct Matrix *m)
       scanf("%lf", &(m->mat[i][j]));
 }
 
-// cuDoubleComplex dft(struct Matrix *mat, int k, int l)
-// {
-//   double complex element = 0.0;
-//   for (int m = 0; m < mat->size; m++)
-//   {
-//     for (int n = 0; n < mat->size; n++)
-//     {
-//       double complex arg = (k * m / (double)mat->size) + (l * n / (double)mat->size);
-//       double complex exponent = cexp(-2.0I * M_PI * arg);
-//       element += mat->mat[m][n] * exponent;
-//     }
-//   }
-//   return element / (double)(mat->size * mat->size);
-// }
-
 __global__ void computeDFT(struct Matrix *src, struct FreqMatrix *dest)
 {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -52,8 +37,6 @@ __global__ void computeDFT(struct Matrix *src, struct FreqMatrix *dest)
     {
       for (int n = 0; n < src->size; n++)
       {
-        // double complex arg = (k * m / (double)src->size) + (l * n / (double)src->size);
-        // double complex exponent = cexp(-2.0I * M_PI * arg);
         double arg = (i * m / (double)src->size) + (j * n / (double)src->size);
         cuDoubleComplex exponent = make_cuDoubleComplex(cos(-2.0 * M_PI * arg), sin(-2.0 * M_PI * arg));
         element = cuCadd(element, cuCmul(make_cuDoubleComplex(src->mat[m][n], 0.0), exponent));
@@ -90,19 +73,16 @@ int main(void)
   cudaDeviceSynchronize();
   end = clock();
 
-  // double complex sum = 0.0
   cuDoubleComplex sum = make_cuDoubleComplex(0.0, 0.0);
-  for (int k = 0; k < source.size; k++)
+  for (int k = 0; k < 3; k++)
   {
-    for (int l = 0; l < source.size; l++)
+    printf("{");
+    for (int l = 0; l < 3; l++)
     {
-      // double complex el = freq_domain.mat[k][l];
-      // printf("(%lf, %lf) ", creal(el), cimag(el));
-      // sum += el;
       sum = cuCadd(sum, freq_domain.mat[k][l]);
-      printf("(%lf, %lf) ", cuCreal(freq_domain.mat[k][l]), cuCimag(freq_domain.mat[k][l]));
+      printf("(%lf, %lf), ", cuCreal(freq_domain.mat[k][l]), cuCimag(freq_domain.mat[k][l]));
     }
-    printf("\n");
+    printf("}\n");
   }
   sum = cuCdiv(sum, make_cuDoubleComplex(source.size, 0.0));
   printf("Average : (%lf, %lf)\n", cuCreal(sum), cuCimag(sum));

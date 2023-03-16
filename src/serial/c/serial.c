@@ -58,15 +58,16 @@ int main(void)
     end = clock();
 
     double complex sum = 0.0;
-    for (int k = 0; k < source.size; k++)
+    for (int k = 0; k < 3; k++)
     {
-        for (int l = 0; l < source.size; l++)
+        printf("{");
+        for (int l = 0; l < 3; l++)
         {
             double complex el = freq_domain.mat[k][l];
             printf("(%lf, %lf) ", creal(el), cimag(el));
             sum += el;
         }
-        printf("\n");
+        printf("}\n");
     }
     sum /= source.size;
     printf("Average : (%lf, %lf)\n", creal(sum), cimag(sum));
