@@ -77,10 +77,20 @@ int main(void)
         {
             double complex el = freq_domain.mat[k][l];
             printf("(%lf, %lf), ", creal(el), cimag(el));
-            sum += el;
         }
         printf("}\n");
     }
+
+    // calculate the sum of the matrix
+    for (int k = 0; k < source.size; k++)
+    {   
+        for (int l = 0; l < source.size; l++)
+        {
+            double complex el = freq_domain.mat[k][l];
+            sum += el;
+        }
+    }
+
     sum /= source.size;
     printf("Average : (%lf, %lf)\n", creal(sum), cimag(sum));
     printf("Time: %lf\n", ((double)(end - start)));

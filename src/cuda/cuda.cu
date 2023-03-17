@@ -74,16 +74,27 @@ int main(void)
   end = clock();
 
   cuDoubleComplex sum = make_cuDoubleComplex(0.0, 0.0);
+
+  // print some of the matrix
   for (int k = 0; k < 3; k++)
   {
     printf("{");
     for (int l = 0; l < 3; l++)
     {
-      sum = cuCadd(sum, freq_domain.mat[k][l]);
       printf("(%lf, %lf), ", cuCreal(freq_domain.mat[k][l]), cuCimag(freq_domain.mat[k][l]));
     }
     printf("}\n");
   }
+
+  // calculate the sum of the matrix
+  for (int k = 0; k < source.size; k++)
+  {
+    for (int l = 0; l < source.size; l++)
+    {
+      sum = cuCadd(sum, freq_domain.mat[k][l]);
+    }
+  }
+
   sum = cuCdiv(sum, make_cuDoubleComplex(source.size, 0.0));
   printf("Average : (%lf, %lf)\n", cuCreal(sum), cuCimag(sum));
   printf("Time: %f\n", ((double)(end - start)) / CLOCKS_PER_SEC);
