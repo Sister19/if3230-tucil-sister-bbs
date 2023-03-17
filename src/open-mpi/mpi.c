@@ -116,7 +116,8 @@ void print_result()
     {   
         for (int l = 0; l < source.size; l++)
         {
-            double complex el = freq_domain.mat[k][l];
+            double complex el = 
+ freq_domain.mat[k * freq_domain.size + l];
             sum += el;
         }
     }
